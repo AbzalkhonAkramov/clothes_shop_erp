@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Finance Dashboard - Clothes Shop ERP{% endblock %}
+
+{% block page_title %}Finance{% endblock %}
+
+{% block content %}
+<div class="section-actions mb-3">
+    <div class="ms-auto">
+        <a href="{% url 'add_transaction' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Transaction
+        </a>
+    </div>
+</div>
+
+<!-- Financial Summary Cards -->
+<div class="row mb-4">
+    <!-- Monthly Income -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Monthly Income</h5>
+                <h2 class="card-value text-success">${{ monthly_income|floatformat:2 }}</h2>
+                <p class="card-subtitle">Current month</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Monthly Expenses -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Monthly Expenses</h5>
+                <h2 class="card-value text-danger">${{ monthly_expenses|floatformat:2 }}</h2>
+                <p class="card-subtitle">Current month</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Monthly Profit -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Monthly Profit</h5>
+                <h2 class="card-value {% if monthly_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ monthly_profit|floatformat:2 }}
+                </h2>
+                <p class="card-subtitle">Current month</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Month-over-Month Growth -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">MoM Growth</h5>
+                <h2 class="card-value {% if mom_growth >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ mom_growth|floatformat:1 }}%
+                </h2>
+                <p class="card-subtitle">vs. previous month</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yearly Summary Cards -->
+<div class="row mb-4">
+    <!-- Yearly Income -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Yearly Income</h5>
+                <h2 class="card-value text-success">${{ yearly_income|floatformat:2 }}</h2>
+                <p class="card-subtitle">Current year</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Yearly Expenses -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Yearly Expenses</h5>
+                <h2 class="card-value text-danger">${{ yearly_expenses|floatformat:2 }}</h2>
+                <p class="card-subtitle">Current year</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Yearly Profit -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Yearly Profit</h5>
+                <h2 class="card-value {% if yearly_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ yearly_profit|floatformat:2 }}
+                </h2>
+                <p class="card-subtitle">Current year</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row mb-4">
+    <!-- Income vs Expenses Chart -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Income vs Expenses (Last 6 Months)</h5>
+                <div class="chart-container">
+                    <canvas id="incomeExpensesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Expenses by Category Chart -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Expenses by Category</h5>
+                <div class="chart-container">
+                    <canvas id="expensesByCategoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="section-header">
+    <h3>Recent Transactions</h3>
+    <div class="section-actions">
+        <a href="{% url 'transaction_list' %}" class="btn btn-outline-primary">
+            View All
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>DESCRIPTION</th>
+                        <th>AMOUNT</th>
+                        <th>TYPE</th>
+                        <th>CATEGORY</th>
+                        <th>DATE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in recent_transactions %}
+                    <tr>
+                        <td>{{ transaction.description }}</td>
+                        <td class="{% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                            {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                        </td>
+                        <td>
+                            <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ transaction.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td>{{ transaction.category|default:"Uncategorized" }}</td>
+                        <td>{{ transaction.date|date:"d.m.Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No transactions found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Income vs Expenses Chart
+    var incomeExpensesCtx = document.getElementById('incomeExpensesChart').getContext('2d');
+    var incomeExpensesChart = new Chart(incomeExpensesCtx, {
+        type: 'line',
+        data: {
+            labels: {{ months_data|safe }},
+            datasets: [
+                {
+                    label: 'Income',
+                    data: {{ income_data|safe }},
+                    backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                    borderColor: 'rgba(40, 167, 69, 1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Expenses',
+                    data: {{ expense_data|safe }},
+                    backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                    borderColor: 'rgba(220, 53, 69, 1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Expenses by Category Chart
+    var expensesByCategoryCtx = document.getElementById('expensesByCategoryChart').getContext('2d');
+    var expensesByCategoryChart = new Chart(expensesByCategoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_labels|safe }},
+            datasets: [{
+                data: {{ category_data|safe }},
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 159, 64, 0.8)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            cutout: '70%'
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sales - Clothes Shop ERP{% endblock %}
+
+{% block page_title %}Sales{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <h3>Sales Report</h3>
+    <div class="section-actions">
+        <button class="btn btn-outline-primary">
+            <i class="fas fa-filter"></i> Filter
+        </button>
+    </div>
+</div>
+
+<!-- Sales Chart -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="chart-container">
+            <div class="chart-filters">
+                <button class="btn btn-sm btn-outline-primary active">1W</button>
+                <button class="btn btn-sm btn-outline-primary">1M</button>
+                <button class="btn btn-sm btn-outline-primary">3M</button>
+                <button class="btn btn-sm btn-outline-primary">1Y</button>
+            </div>
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Products Sold -->
+<div class="section-header">
+    <h3>Products Sold</h3>
+    <div class="section-actions">
+        <button class="btn btn-outline-primary me-2">
+            <i class="fas fa-sort"></i> Sort
+        </button>
+        <button class="btn btn-outline-primary">
+            <i class="fas fa-filter"></i> Filter
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>PRODUCT NAME</th>
+                        <th>CATEGORY</th>
+                        <th>PRODUCT CODE</th>
+                        <th>QUANTITY</th>
+                        <th>PRICE</th>
+                        <th>DATE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in recent_sales %}
+                    <tr>
+                        <td>{{ sale.product.name }}</td>
+                        <td>{{ sale.product.category.name }}</td>
+                        <td>{{ sale.product.code }}</td>
+                        <td>{{ sale.quantity }}</td>
+                        <td>{{ sale.price }} AZN</td>
+                        <td>{{ sale.date|date:"d.m.Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <nav aria-label="Page navigation">
+                <ul class="pagination">
+                    <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item"><a class="page-link" href="#">4</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="showing-info">
+                Showing <select class="form-select form-select-sm d-inline-block w-auto">
+                    <option>5</option>
+                    <option>10</option>
+                    <option>20</option>
+                    <option>50</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Sales Chart
+    var salesCtx = document.getElementById('salesChart').getContext('2d');
+    var salesChart = new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avq', 'Sent', 'Okt', 'Noy', 'Dek'],
+            datasets: [{
+                label: 'Sales',
+                data: [20000, 40000, 60000, 40000, 60000, 80000, 100000, 80000, 60000, 80000, 100000, 120000],
+                fill: true,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1,
+                tension: 0.4
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
