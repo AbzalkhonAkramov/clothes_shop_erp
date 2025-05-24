@@ -22,8 +22,22 @@ jobs:
         script: |
           cd clothes_shop_erp
           git pull origin main
+          
+          # Create virtual environment if it doesn't exist
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+          fi
+          
+          # Activate virtual environment
           source venv/bin/activate
+          
+          # Install dependencies
+          pip install --upgrade pip
           pip install -r requirements.txt
+          
+          # Apply migrations
           python3 manage.py migrate
+          
+          # Restart Django development server
           pkill -f runserver || true
           nohup python3 manage.py runserver 0.0.0.0:8000 > log.txt 2>&1 &
