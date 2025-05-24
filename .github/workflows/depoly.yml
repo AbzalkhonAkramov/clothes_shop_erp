@@ -40,4 +40,4 @@ jobs:
           
           # Restart Django development server
           pkill -f runserver || true
-          nohup python3 manage.py runserver 0.0.0.0:8000 > log.txt 2>&1 &
+          nohup python3 manage.py runserver 0.0.0.0:8000 > log.txt 2>&1 & disown
