@@ -1,0 +1,451 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Clothes Shop ERP{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="welcome-section mb-4">
+    <h2>Welcome, {{ request.user.username }}!</h2>
+    <p class="text-muted">Here's what's happening with your business today.</p>
+</div>
+
+<!-- KPI Summary Cards -->
+<div class="row mb-4">
+    <!-- Sales KPI -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">Monthly Sales</h5>
+                    <i class="fas fa-shopping-cart text-primary"></i>
+                </div>
+                <h2 class="card-value">${{ monthly_sales_amount|floatformat:2 }}</h2>
+                <div class="d-flex justify-content-between align-items-center">
+                    <p class="card-subtitle mb-0">{{ monthly_sales_quantity }} items sold</p>
+                    <span class="badge {% if sales_growth >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if sales_growth >= 0 %}+{% endif %}{{ sales_growth|floatformat:1 }}%
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Finance KPI -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">Monthly Profit</h5>
+                    <i class="fas fa-money-bill-wave text-success"></i>
+                </div>
+                <h2 class="card-value {% if monthly_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ monthly_profit|floatformat:2 }}
+                </h2>
+                <div class="d-flex justify-content-between align-items-center">
+                    <p class="card-subtitle mb-0">Income: ${{ monthly_income|floatformat:2 }}</p>
+                    <p class="card-subtitle mb-0">Expenses: ${{ monthly_expenses|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HR KPI -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">Employees</h5>
+                    <i class="fas fa-users text-info"></i>
+                </div>
+                <h2 class="card-value">{{ total_employees }}</h2>
+                <div class="d-flex justify-content-between align-items-center">
+                    <p class="card-subtitle mb-0">Avg. Salary: ${{ avg_salary|floatformat:2 }}</p>
+                    <p class="card-subtitle mb-0">Departments: {{ departments.count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warehouse KPI -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">Inventory Value</h5>
+                    <i class="fas fa-warehouse text-warning"></i>
+                </div>
+                <h2 class="card-value">${{ inventory_value|floatformat:2 }}</h2>
+                <div class="d-flex justify-content-between align-items-center">
+                    <p class="card-subtitle mb-0">Low Stock Items: {{ low_stock_count }}</p>
+                    <a href="{% url 'inventory_list' %}" class="text-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <!-- Sales Chart -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Sales Trend (Last 6 Months)</h5>
+                <div class="chart-container">
+                    <canvas id="salesTrendChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Distribution -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Employee Distribution</h5>
+                <div class="chart-container">
+                    <canvas id="departmentChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Second Row of Charts -->
+<div class="row mb-4">
+    <!-- Expense Categories -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Expense Breakdown</h5>
+                <div class="chart-container">
+                    <canvas id="expenseCategoryChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Value by Category -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Inventory Value by Category</h5>
+                <div class="chart-container">
+                    <canvas id="inventoryCategoryChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity Section -->
+<div class="row">
+    <!-- Recent Sales -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Sales</h5>
+                <a href="{% url 'sales_dashboard' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td>{{ sale.product.name }}</td>
+                                <td>{{ sale.quantity }}</td>
+                                <td>${{ sale.price }}</td>
+                                <td>{{ sale.date|date:"d.m.Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No recent sales</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Transactions</h5>
+                <a href="{% url 'finance_dashboard' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.description }}</td>
+                                <td class="{% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                    {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                                </td>
+                                <td>
+                                    <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ transaction.get_transaction_type_display }}
+                                    </span>
+                                </td>
+                                <td>{{ transaction.date|date:"d.m.Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No recent transactions</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Best Selling Products -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Best Selling Products</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Units Sold</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in best_selling_products %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.category.name }}</td>
+                                <td>{{ product.total_sold }}</td>
+                                <td>${{ product.price }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No products sold yet</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Items -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Low Stock Items</h5>
+                <a href="{% url 'inventory_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in low_stock_items %}
+                            <tr>
+                                <td>{{ item.product.name }}</td>
+                                <td>{{ item.product.category.name }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>
+                                    {% if item.quantity == 0 %}
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                    {% elif item.quantity < 5 %}
+                                    <span class="badge bg-warning">Critical</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Low</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No low stock items</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Sales Trend Chart
+    var salesCtx = document.getElementById('salesTrendChart').getContext('2d');
+    var salesChart = new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_chart_labels|safe }},
+            datasets: [{
+                label: 'Sales ($)',
+                data: {{ sales_chart_data|safe }},
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Department Chart
+    var deptCtx = document.getElementById('departmentChart').getContext('2d');
+    var deptChart = new Chart(deptCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ dept_chart_labels|safe }},
+            datasets: [{
+                data: {{ dept_chart_data|safe }},
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            },
+            cutout: '70%'
+        }
+    });
+
+    // Expense Category Chart
+    var expenseCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+    var expenseChart = new Chart(expenseCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ expense_chart_labels|safe }},
+            datasets: [{
+                label: 'Expenses ($)',
+                data: {{ expense_chart_data|safe }},
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Inventory Category Chart
+    var inventoryCtx = document.getElementById('inventoryCategoryChart').getContext('2d');
+    var inventoryChart = new Chart(inventoryCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ inventory_chart_labels|safe }},
+            datasets: [{
+                label: 'Inventory Value ($)',
+                data: {{ inventory_chart_data|safe }},
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 159, 64, 0.8)',
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

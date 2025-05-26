@@ -1,0 +1,8 @@
+Django==4.2.7
+django-crispy-forms==2.0
+crispy-bootstrap4==2022.1
+Pillow==10.0.0
+django-filter==23.2
+django-tables2==2.5.3
+django-chartjs==2.3.0
+gunicorn
