@@ -21,7 +21,7 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Monthly Income</h5>
-                <h2 class="card-value text-success">${{ monthly_income|floatformat:2 }}</h2>
+                <h2 class="card-value text-success">sum{{ monthly_income|floatformat:2 }}</h2>
                 <p class="card-subtitle">Current month</p>
             </div>
         </div>
@@ -32,7 +32,7 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Monthly Expenses</h5>
-                <h2 class="card-value text-danger">${{ monthly_expenses|floatformat:2 }}</h2>
+                <h2 class="card-value text-danger">sum{{ monthly_expenses|floatformat:2 }}</h2>
                 <p class="card-subtitle">Current month</p>
             </div>
         </div>
